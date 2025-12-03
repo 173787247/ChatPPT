@@ -104,40 +104,37 @@ CMD ["python", "src/gradio_server.py"]
 docker-compose up -d
 ```
 
-### 方式二：使用域名访问
-
-#### 1. 配置域名 DNS
-
-在域名提供商处添加 A 记录：
-- 类型：A
-- 主机记录：@ 或 chatppt
-- 记录值：你的服务器 IP 地址
-
-#### 2. 配置 Nginx 反向代理（同上）
-
-#### 3. 配置 SSL 证书（同上）
-
 ## 访问方式
 
-### IP:PORT 访问
-- HTTP: `http://YOUR_IP:7860`
-- HTTPS: `https://YOUR_IP:7860` (需要配置 SSL)
+### Docker 容器访问
+- **通过端口映射**: `http://localhost:7860` 或 `http://YOUR_SERVER_IP:7860`
+- **通过容器 IP**: `http://CONTAINER_IP:7860`
 
-### 域名访问
-- HTTP: `http://your-domain.com`
-- HTTPS: `https://your-domain.com` (推荐)
+### 获取访问地址
+```bash
+# 获取服务器 IP
+ipconfig  # Windows
+ifconfig  # Linux/Mac
+
+# 获取容器 IP
+docker inspect chatppt | grep IPAddress
+```
 
 ## 截图和链接
 
-### 作业一：IP:PORT 访问截图
+### 作业一：Docker IP:PORT 访问截图
 
 ![IP:PORT 访问截图](screenshots/ip_port_access.png)
 
-访问地址：`https://YOUR_IP:7860`
+访问地址：`http://YOUR_SERVER_IP:7860`
 
-### 作业二：域名访问链接
+示例：`http://192.168.200.162:7860`
 
-服务链接：`https://your-domain.com`
+### 作业二：Docker 服务链接
+
+服务链接：`http://YOUR_SERVER_IP:7860`
+
+示例：`http://192.168.200.162:7860`
 
 ## 注意事项
 
