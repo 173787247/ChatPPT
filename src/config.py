@@ -22,3 +22,9 @@ class Config:
             
             # 加载布局映射
             self.layout_mapping = config.get('layout_mapping', {})
+            
+            # 加载图像生成配置
+            self.image_generator = config.get('image_generator', {})
+            
+            # 加载反思机制配置
+            self.reflection = config.get('reflection', {})

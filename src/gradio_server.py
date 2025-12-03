@@ -16,6 +16,19 @@ from slide_builder import SlideBuilder
 from data_structures import PowerPoint, Slide
 from logger import LOG
 
+# 导入新功能模块（可选）
+try:
+    from image_generator import ImageGenerator
+    IMAGE_GEN_AVAILABLE = True
+except ImportError:
+    IMAGE_GEN_AVAILABLE = False
+
+try:
+    from langgraph_reflection_agent import LangGraphReflectionAgent
+    REFLECTION_AVAILABLE = True
+except ImportError:
+    REFLECTION_AVAILABLE = False
+
 
 class ChatBot:
     """ChatBot 类，用于将用户输入转换为 Markdown 格式"""
@@ -97,13 +110,14 @@ class ChatBot:
             raise
 
 
-def generate_ppt_from_markdown(markdown_text: str, config: Config) -> tuple[str, str]:
+def generate_ppt_from_markdown(markdown_text: str, config: Config, enable_image_generation: bool = False) -> tuple[str, str]:
     """
     从 Markdown 文本生成 PowerPoint 文件
     
     Args:
         markdown_text: Markdown 格式的输入文本
         config: 配置对象
+        enable_image_generation: 是否启用智能配图
         
     Returns:
         tuple: (输出文件路径, 状态消息)
@@ -121,6 +135,26 @@ def generate_ppt_from_markdown(markdown_text: str, config: Config) -> tuple[str,
         
         # 解析输入文本（parse_input_text 内部会使用 layout_manager 自动分配布局）
         powerpoint_data, presentation_title = parse_input_text(markdown_text, layout_manager)
+        
+        # 智能配图（如果启用且幻灯片没有图片）
+        if enable_image_generation:
+            try:
+                from image_generator import ImageGenerator
+                image_gen = ImageGenerator(config.__dict__)
+                
+                for slide in powerpoint_data.slides:
+                    # 如果幻灯片没有图片，尝试生成
+                    if not slide.content.image_path:
+                        slide_content = "\n".join(slide.content.bullet_points)
+                        generated_image = image_gen.generate_image_for_slide(
+                            slide_content, 
+                            slide.content.title
+                        )
+                        if generated_image:
+                            slide.content.image_path = generated_image
+                            LOG.info(f"为幻灯片 '{slide.content.title}' 生成配图: {generated_image}")
+            except Exception as e:
+                LOG.warning(f"智能配图失败，继续生成 PPT: {str(e)}")
         
         # 生成输出路径
         output_dir = os.path.join(os.getcwd(), 'outputs')
@@ -174,8 +208,8 @@ def chat_with_bot(user_message: str, history: list) -> tuple[list, str, str]:
         # 转换为 Markdown
         markdown_text = _global_chatbot.format_to_markdown(user_message)
         
-        # 生成 PowerPoint
-        output_path, status_msg = generate_ppt_from_markdown(markdown_text, _global_config)
+        # 生成 PowerPoint（默认不启用图像生成，避免额外成本）
+        output_path, status_msg = generate_ppt_from_markdown(markdown_text, _global_config, enable_image_generation=False)
         
         # 更新历史（Gradio 6.0+ 使用 messages 格式：[{"role": "user", "content": "..."}, ...]）
         bot_response = f"{status_msg}\n\n**生成的 Markdown：**\n```markdown\n{markdown_text}\n```"

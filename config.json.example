@@ -1,0 +1,16 @@
+{
+    "input_mode": "text",
+    "ppt_template": "templates/MasterTemplate.pptx",
+    "layout_mapping": {},
+    "image_generator": {
+        "provider": "openai",
+        "openai_api_key": "",
+        "stability_api_key": "",
+        "local_sd_url": "http://localhost:7860"
+    },
+    "reflection": {
+        "enabled": true,
+        "max_iterations": 5
+    }
+}
+
