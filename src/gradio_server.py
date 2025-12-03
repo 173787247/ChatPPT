@@ -116,26 +116,11 @@ def generate_ppt_from_markdown(markdown_text: str, config: Config) -> tuple[str,
         # 获取布局映射
         layout_mapping = get_layout_mapping(prs)
         
-        # 解析输入文本
-        powerpoint_data, presentation_title = parse_input_text(markdown_text, layout_mapping)
-        
-        # 使用 LayoutManager 自动分配布局
+        # 创建 LayoutManager（parse_input_text 需要 LayoutManager 对象，不是字典）
         layout_manager = LayoutManager(layout_mapping)
         
-        # 重新构建幻灯片，使用自动布局分配
-        new_slides = []
-        for slide in powerpoint_data.slides:
-            slide_builder = SlideBuilder(layout_manager)
-            slide_builder.set_title(slide.content.title)
-            for point in slide.content.bullet_points:
-                slide_builder.add_bullet_point(point)
-            if slide.content.image_path:
-                slide_builder.set_image(slide.content.image_path)
-            new_slide = slide_builder.finalize()
-            new_slides.append(new_slide)
-        
-        # 更新 PowerPoint 数据
-        powerpoint_data.slides = new_slides
+        # 解析输入文本（parse_input_text 内部会使用 layout_manager 自动分配布局）
+        powerpoint_data, presentation_title = parse_input_text(markdown_text, layout_manager)
         
         # 生成输出路径
         output_dir = os.path.join(os.getcwd(), 'outputs')
@@ -151,47 +136,104 @@ def generate_ppt_from_markdown(markdown_text: str, config: Config) -> tuple[str,
         return "", f"❌ 生成失败：{str(e)}"
 
 
-def chat_with_bot(user_message: str, history: list, chatbot: ChatBot, config: Config) -> tuple[list, str, str]:
+# 全局变量存储 ChatBot 和 Config 实例（避免 State 序列化问题）
+_global_chatbot = None
+_global_config = None
+
+
+def chat_with_bot(user_message: str, history: list) -> tuple[list, str, str]:
     """
     与 ChatBot 对话并生成 PowerPoint
     
     Args:
         user_message: 用户消息
-        history: 对话历史
-        chatbot: ChatBot 实例
-        config: 配置对象
+        history: 对话历史（Gradio Chatbot 格式：[(user, bot), ...]）
         
     Returns:
         tuple: (更新后的历史, 清空的输入框, 生成的 Markdown 文本)
     """
+    global _global_chatbot, _global_config
+    
+    # 确保 history 是列表格式
+    if history is None:
+        history = []
+    
     if not user_message.strip():
+        return history, "", ""
+    
+    if _global_chatbot is None or _global_config is None:
+        error_msg = "❌ 错误：ChatBot 或 Config 未初始化"
+        # 确保 history 是列表，且每个元素是元组
+        if not isinstance(history, list):
+            history = []
+        # Gradio Chatbot 格式：(user_message, bot_response) 必须是字符串元组
+        history.append((str(user_message), str(error_msg)))
         return history, "", ""
     
     try:
         # 转换为 Markdown
-        markdown_text = chatbot.format_to_markdown(user_message)
+        markdown_text = _global_chatbot.format_to_markdown(user_message)
         
         # 生成 PowerPoint
-        output_path, status_msg = generate_ppt_from_markdown(markdown_text, config)
+        output_path, status_msg = generate_ppt_from_markdown(markdown_text, _global_config)
         
-        # 更新历史
-        history.append((user_message, f"{status_msg}\n\n**生成的 Markdown：**\n```markdown\n{markdown_text}\n```"))
+        # 更新历史（Gradio 6.0+ 使用 messages 格式：[{"role": "user", "content": "..."}, ...]）
+        bot_response = f"{status_msg}\n\n**生成的 Markdown：**\n```markdown\n{markdown_text}\n```"
         
-        return history, "", markdown_text
+        # 确保 history 是列表
+        if not isinstance(history, list):
+            history = []
+        
+        # 转换格式：如果是元组格式，转换为 messages 格式
+        new_history = []
+        for item in history:
+            if isinstance(item, dict) and "role" in item and "content" in item:
+                # 已经是 messages 格式
+                new_history.append(item)
+            elif isinstance(item, (list, tuple)) and len(item) == 2:
+                # 元组格式，转换为 messages 格式
+                new_history.append({"role": "user", "content": str(item[0]) if item[0] else ""})
+                new_history.append({"role": "assistant", "content": str(item[1]) if item[1] else ""})
+        
+        # 添加新的消息（messages 格式）
+        new_history.append({"role": "user", "content": str(user_message) if user_message else ""})
+        new_history.append({"role": "assistant", "content": str(bot_response) if bot_response else ""})
+        
+        return new_history, "", markdown_text
     except Exception as e:
         error_msg = f"❌ 错误：{str(e)}"
-        history.append((user_message, error_msg))
-        return history, "", ""
+        # 确保 history 是列表
+        if not isinstance(history, list):
+            history = []
+        
+        # 转换格式：如果是元组格式，转换为 messages 格式
+        new_history = []
+        for item in history:
+            if isinstance(item, dict) and "role" in item and "content" in item:
+                # 已经是 messages 格式
+                new_history.append(item)
+            elif isinstance(item, (list, tuple)) and len(item) == 2:
+                # 元组格式，转换为 messages 格式
+                new_history.append({"role": "user", "content": str(item[0]) if item[0] else ""})
+                new_history.append({"role": "assistant", "content": str(item[1]) if item[1] else ""})
+        
+        # 添加新的错误消息（messages 格式）
+        new_history.append({"role": "user", "content": str(user_message) if user_message else ""})
+        new_history.append({"role": "assistant", "content": str(error_msg) if error_msg else ""})
+        
+        return new_history, "", ""
 
 
 def create_gradio_interface():
     """创建 Gradio 界面"""
+    global _global_chatbot, _global_config
+    
     # 加载配置
-    config = Config()
+    _global_config = Config()
     
     # 初始化 ChatBot
     system_prompt_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'prompts', 'formatter.txt')
-    chatbot = ChatBot(system_prompt_path)
+    _global_chatbot = ChatBot(system_prompt_path)
     
     # 创建 Gradio 界面
     with gr.Blocks(title="ChatPPT - AI PowerPoint Generator") as app:
@@ -213,7 +255,7 @@ def create_gradio_interface():
                 chatbot_interface = gr.Chatbot(
                     label="对话",
                     height=400,
-                    show_copy_button=True
+                    value=[]  # 初始化为空列表，使用默认的 messages 格式
                 )
                 user_input = gr.Textbox(
                     label="输入你的演示文稿内容",
@@ -244,13 +286,13 @@ def create_gradio_interface():
         # 绑定事件
         submit_btn.click(
             chat_with_bot,
-            inputs=[user_input, chatbot_interface, gr.State(chatbot), gr.State(config)],
+            inputs=[user_input, chatbot_interface],
             outputs=[chatbot_interface, user_input, markdown_output]
         )
         
         user_input.submit(
             chat_with_bot,
-            inputs=[user_input, chatbot_interface, gr.State(chatbot), gr.State(config)],
+            inputs=[user_input, chatbot_interface],
             outputs=[chatbot_interface, user_input, markdown_output]
         )
     
@@ -266,12 +308,38 @@ if __name__ == "__main__":
     server_port = int(os.getenv("SERVER_PORT", "7860"))
     share = os.getenv("GRADIO_SHARE", "False").lower() == "true"
     
+    # 获取实际访问地址（0.0.0.0 需要转换为 localhost 或实际 IP）
+    if server_name == "0.0.0.0":
+        access_url_local = f"http://localhost:{server_port}"
+        # 尝试获取本地 IP
+        try:
+            import socket
+            hostname = socket.gethostname()
+            local_ip = socket.gethostbyname(hostname)
+            # 过滤出局域网 IP
+            import ipaddress
+            for addr in socket.getaddrinfo(hostname, None):
+                ip = addr[4][0]
+                try:
+                    if ipaddress.ip_address(ip).is_private:
+                        local_ip = ip
+                        break
+                except:
+                    pass
+            access_url_network = f"http://{local_ip}:{server_port}"
+        except:
+            access_url_network = access_url_local
+    else:
+        access_url_local = f"http://{server_name}:{server_port}"
+        access_url_network = access_url_local
+    
     print(f"""
     ========================================
     ChatPPT 服务启动中...
     ========================================
-    访问地址: http://{server_name}:{server_port}
-    服务器: {server_name}
+    本地访问: {access_url_local}
+    网络访问: {access_url_network}
+    服务器绑定: {server_name}
     端口: {server_port}
     ========================================
     """)
