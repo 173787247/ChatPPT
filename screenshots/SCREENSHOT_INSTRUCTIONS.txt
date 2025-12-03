@@ -2,7 +2,7 @@
 
 ## 1. Open browser and visit one of these URLs:
 - Local: http://localhost:7860
-- IP:    http://
+- IP:    http://192.168.3.15:7860
 
 ## 2. Take screenshot using:
 - Windows shortcut: Win + Shift + S
