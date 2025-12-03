@@ -35,7 +35,18 @@ class ChatBot:
         # 初始化 LLM
         api_key = api_key or os.getenv('OPENAI_API_KEY')
         if not api_key:
-            raise ValueError("需要提供 OPENAI_API_KEY 环境变量或参数")
+            # 尝试从配置文件读取
+            try:
+                config = Config()
+                # 如果配置文件中有 API Key，可以在这里读取
+                pass
+            except:
+                pass
+            
+            if not api_key:
+                LOG.warning("未设置 OPENAI_API_KEY，ChatBot 功能将不可用")
+                self.llm = None
+                return
         
         self.llm = ChatOpenAI(
             model="gpt-4o-mini",
@@ -56,6 +67,9 @@ class ChatBot:
         Returns:
             str: 转换后的 Markdown 格式文本
         """
+        if not self.llm:
+            raise ValueError("ChatBot 未初始化，请设置 OPENAI_API_KEY 环境变量")
+        
         # 构建消息
         messages = [
             SystemMessage(content=self.system_prompt),
