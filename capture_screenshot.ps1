@@ -38,7 +38,11 @@ try {
 }
 
 $localUrl = "http://localhost:7860"
-$ipUrl = "http://$ipAddress:7860"
+if ($ipAddress -and $ipAddress -ne "localhost" -and $ipAddress) {
+    $ipUrl = "http://$ipAddress:7860"
+} else {
+    $ipUrl = $localUrl
+}
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan

@@ -194,7 +194,7 @@ def create_gradio_interface():
     chatbot = ChatBot(system_prompt_path)
     
     # 创建 Gradio 界面
-    with gr.Blocks(title="ChatPPT - AI PowerPoint Generator", theme=gr.themes.Soft()) as app:
+    with gr.Blocks(title="ChatPPT - AI PowerPoint Generator") as app:
         gr.Markdown("""
         # 🎨 ChatPPT - AI PowerPoint Generator
         

@@ -1,0 +1,20 @@
+﻿# Screenshot Steps
+
+## 1. Open browser and visit one of these URLs:
+- Local: http://localhost:7860
+- IP:    http://
+
+## 2. Take screenshot using:
+- Windows shortcut: Win + Shift + S
+- Or use Snipping Tool
+
+## 3. Screenshot requirements:
+- Show browser address bar (with IP:PORT or localhost:7860)
+- Show complete ChatPPT interface
+- Interface displays normally with input box and buttons
+
+## 4. Save screenshot:
+- Filename: ip_port_access.png
+- Save location: D:\Users\rchua\Desktop\AI-FullStack\Chatppt\screenshots\ip_port_access.png
+
+## 5. After screenshot, press Ctrl+C to stop the service
