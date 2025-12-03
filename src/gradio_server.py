@@ -253,6 +253,12 @@ def create_gradio_interface():
             inputs=[user_input, chatbot_interface, gr.State(chatbot), gr.State(config)],
             outputs=[chatbot_interface, user_input, markdown_output]
         )
+    except Exception as e:
+        # Fallback for older Gradio versions
+        LOG.warning(f"Failed to create Gradio interface with theme: {e}")
+        with gr.Blocks(title="ChatPPT - AI PowerPoint Generator") as app:
+            gr.Markdown("# ChatPPT - AI PowerPoint Generator")
+            gr.Markdown("Please upgrade Gradio to version 4.0+ for full features")
     
     return app
 
