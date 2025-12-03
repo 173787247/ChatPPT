@@ -28,16 +28,29 @@
 ### 服务链接
 **ChatPPT Docker 服务地址**: `http://YOUR_SERVER_IP:7860`
 
+**示例**: `http://192.168.200.162:7860`
+
 ### 部署信息
 - **部署方式**: Docker 容器
 - **访问协议**: HTTP
 - **端口映射**: `7860:7860`
+- **容器名称**: `chatppt`
 
 ### 访问验证
 - [x] Docker 容器正常运行
 - [x] 服务可以通过 IP:PORT 访问
+- [x] 浏览器可以正常打开界面
 - [x] 服务功能正常
 - [x] 可以生成 PowerPoint 文件
+
+### 部署命令
+```bash
+# 使用 docker-compose
+docker-compose up -d
+
+# 或使用 Docker 命令
+docker run -d --name chatppt -p 7860:7860 -e OPENAI_API_KEY="your_key" chatppt:latest
+```
 
 ---
 
