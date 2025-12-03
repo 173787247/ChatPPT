@@ -246,9 +246,26 @@ def create_gradio_interface():
 if __name__ == "__main__":
     # 创建并启动界面
     app = create_gradio_interface()
+    
+    # 获取服务器配置
+    server_name = os.getenv("SERVER_NAME", "0.0.0.0")
+    server_port = int(os.getenv("SERVER_PORT", "7860"))
+    share = os.getenv("GRADIO_SHARE", "False").lower() == "true"
+    
+    print(f"""
+    ========================================
+    ChatPPT 服务启动中...
+    ========================================
+    访问地址: http://{server_name}:{server_port}
+    服务器: {server_name}
+    端口: {server_port}
+    ========================================
+    """)
+    
     app.launch(
-        server_name="0.0.0.0",
-        server_port=7860,
-        share=False
+        server_name=server_name,
+        server_port=server_port,
+        share=share,
+        show_error=True
     )
 
